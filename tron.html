@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>TRON LIGHTCYCLES</title>
+<style>*{margin:0;padding:0}body{background:#000;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;overflow:hidden}</style>
+</head><body><canvas id="c"></canvas>
+<script>
+const c=document.getElementById('c'),ctx=c.getContext('2d'),W=c.width=640,H=c.height=480;
+function draw(t){
+  ctx.fillStyle='rgba(0,0,10,0.12)';ctx.fillRect(0,0,W,H);
+  for(let i=0;i<6;i++){
+    const a=t*.001+i*1.05,r=50+i*18;
+    ctx.fillStyle='#00ffff';ctx.globalAlpha=0.15+Math.sin(t*.002+i)*0.1;
+    ctx.beginPath();ctx.arc(W/2+Math.cos(a)*r,H/2+Math.sin(a)*r,6+i*4,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#00ffff';ctx.font='bold 24px monospace';ctx.textAlign='center';
+  ctx.shadowColor='#00ffff';ctx.shadowBlur=20;
+  ctx.fillText('TRON LIGHTCYCLES',W/2,H/2-24);
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#888';ctx.font='10px monospace';
+  ctx.fillText('FULL GAME COMING SOON',W/2,H/2+8);
+  ctx.fillStyle='#444';ctx.font='9px monospace';
+  ctx.fillText('HOLD ESC 2.5s IN ARCADE TO EXIT',W/2,H/2+30);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script></body></html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SPACE INVADERS</title>
+<style>*{margin:0;padding:0}body{background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden}</style>
+</head><body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),ctx=c.getContext('2d'),W=c.width=580,H=c.height=520;
+const COLS=10,ROWS=4,IW=30,IH=22,ISX=52,ISY=44,IOFFX=36,IOFFY=60;
+const ICOLS=['#ff0080','#ff0080','#ff6a00','#ffe600'];
+let invaders=[],bullets=[],eBullets=[],score=0,lives=3,dir=1,spd=0.35,tick=0,go=false,won=false;
+function init(){invaders=[];for(let r=0;r<ROWS;r++)for(let ci=0;ci<COLS;ci++)invaders.push({x:ci*ISX+IOFFX,y:r*ISY+IOFFY,alive:true,row:r});}
+init();
+let keys={};
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&bullets.length<3)bullets.push({x:W/2,y:H-52,vy:-9});});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+let px=W/2-24,pframe=0;
+function loop(){
+  tick++;
+  if(!go&&!won){
+    if(keys['ArrowLeft']||keys['a'])px=Math.max(0,px-6);
+    if(keys['ArrowRight']||keys['d'])px=Math.min(W-48,px+6);
+    if(tick%3===0&&keys['Space']&&bullets.length<3)bullets.push({x:px+24,y:H-52,vy:-9});
+    const alive=invaders.filter(v=>v.alive);
+    const edgeHit=alive.some(v=>v.x<=2||v.x>=W-IW-2);
+    alive.forEach(v=>{v.x+=dir*spd;});
+    if(edgeHit){alive.forEach(v=>v.y+=18);dir*=-1;spd+=0.05;}
+    if(alive.some(v=>v.y>H-80)){go=true;}
+    if(tick%58===0&&Math.random()<.7&&alive.length){const t=alive[Math.floor(Math.random()*alive.length)];eBullets.push({x:t.x+IW/2,y:t.y+IH,vx:(Math.random()-.5)*2,vy:4.5});}
+    bullets.forEach((b,bi)=>{b.y+=b.vy;invaders.forEach((v,vi)=>{if(!v.alive)return;if(b.x>v.x&&b.x<v.x+IW&&b.y>v.y&&b.y<v.y+IH){v.alive=false;score+=10*(ROWS-v.row);bullets.splice(bi,1);}});});
+    bullets=bullets.filter(b=>b.y>0);
+    eBullets=eBullets.filter(b=>{b.x+=b.vx;b.y+=b.vy;if(b.x>px&&b.x<px+48&&b.y>H-52){lives--;if(lives<=0)go=true;return false;}return b.y<H;});
+    if(!invaders.some(v=>v.alive)){won=true;window.parent.postMessage({type:'SCORE',id:'spaceinvaders',score},'*');}
+    pframe=Math.floor(tick/12)%2;
+  }
+  ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+  invaders.forEach(v=>{if(!v.alive)return;ctx.fillStyle=ICOLS[v.row];const f=Math.floor(tick/20)%2;ctx.fillRect(v.x+6,v.y,IW-12,IH-4);ctx.fillRect(v.x+2,v.y+4,IW-4,IH-8);ctx.fillRect(v.x,v.y+8,6,8);ctx.fillRect(v.x+IW-6,v.y+8,6,8);if(f){ctx.fillRect(v.x+2,v.y+IH-4,5,5);ctx.fillRect(v.x+IW-7,v.y+IH-4,5,5);}});
+  ctx.fillStyle='#00ffff';ctx.fillRect(px,H-48,48,16);ctx.fillRect(px+17,H-60,14,14);
+  ctx.fillStyle='#ffe600';bullets.forEach(b=>ctx.fillRect(b.x-2,b.y,4,12));
+  ctx.fillStyle='#ff4444';eBullets.forEach(b=>ctx.fillRect(b.x-2,b.y,4,12));
+  ctx.fillStyle='#ffe600';ctx.font='13px monospace';ctx.textAlign='left';ctx.fillText('SCORE '+score,6,20);ctx.fillText('LIVES '+lives,W-90,20);
+  if(go||won){ctx.fillStyle='rgba(0,0,0,.75)';ctx.fillRect(0,0,W,H);ctx.fillStyle=won?'#ffe600':'#ff0080';ctx.font='26px monospace';ctx.textAlign='center';ctx.fillText(won?'EARTH SAVED!':'GAME OVER',W/2,H/2-10);ctx.fillText('SCORE: '+score,W/2,H/2+24);}
+  requestAnimationFrame(loop);
+}
+loop();
+</script></body></html>

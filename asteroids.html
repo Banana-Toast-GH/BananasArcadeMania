@@ -1,0 +1,39 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ASTEROIDS</title>
+<style>*{margin:0;padding:0}body{background:#000;overflow:hidden}</style>
+</head><body><canvas id="c"></canvas><script>
+const c=document.getElementById('c'),ctx=c.getContext('2d'),W=c.width=window.innerWidth,H=c.height=window.innerHeight;
+let ship={x:W/2,y:H/2,a:-Math.PI/2,vx:0,vy:0,alive:true,inv:0};
+let bullets=[],asteroids=[],particles=[],score=0,lives=3,level=1,go=false;
+const stars=Array.from({length:100},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3}));
+function mkAst(x,y,sz){const pts=[];const n=7+Math.floor(Math.random()*4);for(let i=0;i<n;i++){const a=i/n*Math.PI*2,r=sz*(.65+Math.random()*.6);pts.push({x:Math.cos(a)*r,y:Math.sin(a)*r});}return{x,y,vx:(Math.random()-.5)*2.5,vy:(Math.random()-.5)*2.5,sz,pts,rot:0,rs:(Math.random()-.5)*.04};}
+function spawnLevel(){for(let i=0;i<3+level;i++){let x=Math.random()*W,y=Math.random()*H;while(Math.hypot(x-W/2,y-H/2)<160){x=Math.random()*W;y=Math.random()*H;}asteroids.push(mkAst(x,y,60));}}
+spawnLevel();
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Space'&&ship.alive)bullets.push({x:ship.x+Math.cos(ship.a)*18,y:ship.y+Math.sin(ship.a)*18,vx:Math.cos(ship.a)*11+ship.vx,vy:Math.sin(ship.a)*11+ship.vy,life:55});});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+function w(v,m){return((v%m)+m)%m;}
+function drawPoly(pts){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();}
+function loop(){
+  if(keys['ArrowLeft']||keys['a'])ship.a-=.07;
+  if(keys['ArrowRight']||keys['d'])ship.a+=.07;
+  if((keys['ArrowUp']||keys['w'])&&ship.alive){ship.vx+=Math.cos(ship.a)*.28;ship.vy+=Math.sin(ship.a)*.28;}
+  ship.vx*=.985;ship.vy*=.985;ship.x=w(ship.x+ship.vx,W);ship.y=w(ship.y+ship.vy,H);
+  if(ship.inv>0)ship.inv--;
+  bullets=bullets.filter(b=>{b.x=w(b.x+b.vx,W);b.y=w(b.y+b.vy,H);return --b.life>0;});
+  asteroids.forEach(a=>{a.x=w(a.x+a.vx,W);a.y=w(a.y+a.vy,H);a.rot+=a.rs;});
+  bullets.forEach((b,bi)=>asteroids.forEach((a,ai)=>{if(Math.hypot(b.x-a.x,b.y-a.y)<a.sz*.75){bullets.splice(bi,1);score+=a.sz>40?20:a.sz>20?50:100;for(let i=0;i<8;i++)particles.push({x:a.x,y:a.y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:30});if(a.sz>20){asteroids.push(mkAst(a.x+18,a.y,a.sz*.52));asteroids.push(mkAst(a.x-18,a.y,a.sz*.52));}asteroids.splice(ai,1);}}););
+  if(ship.alive&&ship.inv===0)asteroids.forEach(a=>{if(Math.hypot(ship.x-a.x,ship.y-a.y)<a.sz*.7){lives--;ship.alive=false;setTimeout(()=>{if(lives>0){ship.x=W/2;ship.y=H/2;ship.vx=0;ship.vy=0;ship.alive=true;ship.inv=120;}else go=true;},1400);}});
+  if(!asteroids.length){level++;spawnLevel();}
+  particles=particles.filter(p=>{p.x+=p.vx;p.y+=p.vy;return --p.life>0;});
+  ctx.fillStyle='rgba(0,0,0,.88)';ctx.fillRect(0,0,W,H);
+  stars.forEach(s=>{ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
+  asteroids.forEach(a=>{ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.rot);ctx.strokeStyle='#aaa';ctx.lineWidth=2;drawPoly(a.pts);ctx.stroke();ctx.restore();});
+  if(ship.alive&&(ship.inv===0||Math.floor(ship.inv/6)%2)){ctx.save();ctx.translate(ship.x,ship.y);ctx.rotate(ship.a);ctx.strokeStyle='#00ffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(18,0);ctx.lineTo(-11,-9);ctx.lineTo(-7,0);ctx.lineTo(-11,9);ctx.closePath();ctx.stroke();if(keys['ArrowUp']||keys['w']){ctx.strokeStyle='#ff6a00';ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(-20+Math.random()*10,0);ctx.stroke();}ctx.restore();}
+  bullets.forEach(b=>{ctx.fillStyle='#ffe600';ctx.beginPath();ctx.arc(b.x,b.y,3,0,Math.PI*2);ctx.fill();});
+  particles.forEach(p=>{ctx.fillStyle=`rgba(255,106,0,${p.life/30})`;ctx.fillRect(p.x,p.y,2,2);});
+  ctx.fillStyle='#fff';ctx.font='14px monospace';ctx.textAlign='left';ctx.fillText('SCORE '+score,12,22);ctx.fillText('LIVES '+lives,W-96,22);ctx.fillText('LVL '+level,W/2-22,22);
+  if(go){ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ff0080';ctx.font='32px monospace';ctx.textAlign='center';ctx.fillText('GAME OVER',W/2,H/2);ctx.fillText('SCORE: '+score,W/2,H/2+40);window.parent.postMessage({type:'SCORE',id:'asteroids',score},'*');}
+  requestAnimationFrame(loop);
+}
+loop();
+</script></body></html>
